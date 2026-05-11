@@ -1,0 +1,15 @@
+*.pyc
+*.ipynb_checkpoints
+.env
+*__pycache__/
+.claude/
+
+# Local data — fetch via data/download_link.txt
+data/Subtitles/
+data/ONE_PIECE_S1/
+data/ONE_PIECE_S1.zip
+data/*.csv
+data/*.jsonl
+
+# Stubs / scratch outputs
+stubs/

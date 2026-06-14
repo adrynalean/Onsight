@@ -81,6 +81,7 @@ class AbilityClassifier():
             eval_strategy='epoch',
             logging_strategy='epoch',
             push_to_hub=True,
+            report_to='none',  # avoid interactive W&B prompt on Kaggle/Colab
         )
 
         trainer = CustomTrainer(

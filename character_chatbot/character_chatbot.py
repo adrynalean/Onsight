@@ -18,6 +18,14 @@ def remove_parenthesis(text):
     result = re.sub(r'\(.*?\)', '', text)
     return result
 
+
+def pick_compute_dtype():
+    # bf16 needs Ampere+ (A100/L4/RTX 30xx). Free Kaggle/Colab T4s are Turing
+    # and only support fp16, so fall back rather than crashing/running slow.
+    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+        return torch.bfloat16
+    return torch.float16
+
 class CharacterChatBot():
 
     def __init__(self,
@@ -31,6 +39,7 @@ class CharacterChatBot():
         self.huggingface_token = huggingface_token
         self.base_model_path = "meta-llama/Llama-3.1-8B-Instruct"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.torch_dtype = pick_compute_dtype()
 
         if self.huggingface_token is not None:
             huggingface_hub.login(self.huggingface_token)
@@ -93,13 +102,13 @@ class CharacterChatBot():
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=self.torch_dtype,
         )
         model_pipeline = transformers.pipeline(
             "text-generation",
             model=model_path,
             model_kwargs={
-                "torch_dtype": torch.bfloat16,
+                "torch_dtype": self.torch_dtype,
                 "quantization_config": bnb_config,
             }
         )
@@ -124,8 +133,9 @@ class CharacterChatBot():
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=self.torch_dtype,
         )
+        use_bf16 = self.torch_dtype == torch.bfloat16
 
         model = AutoModelForCausalLM.from_pretrained(
             base_model_name_or_path,
@@ -157,7 +167,8 @@ class CharacterChatBot():
             save_steps=save_steps,
             logging_steps=logging_steps,
             learning_rate=learning_rate,
-            bf16=True,
+            bf16=use_bf16,
+            fp16=not use_bf16,
             max_grad_norm=max_grad_norm,
             max_steps=max_steps,
             warmup_ratio=warmup_ratio,
@@ -193,7 +204,7 @@ class CharacterChatBot():
             base_model_name_or_path,
             return_dict=True,
             quantization_config=bnb_config,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=self.torch_dtype,
             device_map=self.device
         )
 
@@ -206,12 +217,18 @@ class CharacterChatBot():
         gc.collect()
 
     def load_data(self):
-        # One Piece transcript CSV — expects columns: 'character', 'text'
+        # One Piece transcript CSV — expects columns: 'character', 'text'.
+        # reset_index after dropna is required: the prompt builder below uses
+        # .iloc[ind - 1] (positional), so the index must stay contiguous or it
+        # would pair Luffy's line with the wrong "previous" line.
         transcript_df = pd.read_csv(self.data_path)
-        transcript_df = transcript_df.dropna()
+        transcript_df = transcript_df.dropna(subset=['character', 'text']).reset_index(drop=True)
         transcript_df['text'] = transcript_df['text'].apply(remove_parenthesis)
         transcript_df['number_of_words'] = transcript_df['text'].str.strip().str.split()
         transcript_df['number_of_words'] = transcript_df['number_of_words'].apply(len)
+        # Exact 'Luffy' match is intentional: the dataset also contains
+        # 'Not Luffy' and ambiguous group labels ('Luffy & Usopp'), which a
+        # substring match would wrongly include. Solo 'Luffy' lines ~= 10.8k.
         transcript_df['luffy_response_flag'] = 0
         transcript_df.loc[
             (transcript_df['character'] == 'Luffy') &

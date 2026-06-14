@@ -1,3 +1,3 @@
 dataset_1 (subtitles): https://github.com/one-pace/one-pace-public-subtitles
-dataset_2 (dialogue CSV): https://figshare.com/articles/dataset/One_Piece_Transcripts_with_Character_Names_Episodes_382_777/30188161
+dataset_2 (dialogue CSV): https://huggingface.co/datasets/mramazan/One-Piece-Transcripts-with-Character-Names-382-777 (onepiece.csv; mirrors the Figshare "Episodes 382-777" set, columns: episode,start,end,character,text). Fetched automatically by scripts/build_training_datasets.py. Origin: https://figshare.com/articles/dataset/One_Piece_Transcripts_with_Character_Names_Episodes_382_777/30188161
 dataset_3 (abilities wiki): scraped via crawler/ability_crawler.py -> data/abilities.jsonl

@@ -7,15 +7,26 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SUBTITLES_PATH = os.path.join(PROJECT_ROOT, "data", "One_Piece_Anime_S1_English")
+DEFAULT_TEXT_PATH = os.path.join(PROJECT_ROOT, "data", "One_Piece_Anime_S1_English_Text")
+DEFAULT_THEME_SAVE_PATH = os.path.join(PROJECT_ROOT, "data", "one_piece_s1_theme_scores.csv")
+DEFAULT_NER_SAVE_PATH = os.path.join(PROJECT_ROOT, "data", "one_piece_s1_ners.csv")
+DEFAULT_ABILITIES_PATH = os.path.join(PROJECT_ROOT, "data", "abilities.jsonl")
+DEFAULT_TRANSCRIPT_PATH = os.path.join(PROJECT_ROOT, "data", "one_piece.csv")
+DEFAULT_THEMES = "freedom, adventure, friendship, dreams, justice, sacrifice, loyalty, betrayal, family, courage"
+DEFAULT_ABILITY_MODEL_PATH = os.getenv("ability_model_path", "")
+DEFAULT_LUFFY_MODEL_PATH = os.getenv("luffy_model_path", "")
+
 def get_themes(theme_list_str, subtitles_path, save_path):
-    theme_list = theme_list_str.split(',')
+    theme_list = [theme.strip() for theme in theme_list_str.split(',') if theme.strip()]
+    subtitles_path = subtitles_path.strip() or DEFAULT_SUBTITLES_PATH
+    save_path = save_path.strip() or None
     theme_classifier = ThemeClassifier(theme_list)
     output_df = theme_classifier.get_themes(subtitles_path, save_path)
 
     # Remove 'dialogue' from themes before plotting
     theme_list = [theme for theme in theme_list if theme != 'dialogue']
-    output_df = output_df[theme_list]
-
     output_df = output_df[theme_list].sum().reset_index()
     output_df.columns = ['Theme', 'Score']
 
@@ -33,6 +44,8 @@ def get_themes(theme_list_str, subtitles_path, save_path):
     return output_chart
 
 def get_character_network(subtitles_path, ner_path):
+    subtitles_path = subtitles_path.strip() or DEFAULT_SUBTITLES_PATH
+    ner_path = ner_path.strip() or None
     ner = NamedEntityRecognizer()
     ner_df = ner.get_ners(subtitles_path, ner_path)
 
@@ -43,8 +56,17 @@ def get_character_network(subtitles_path, ner_path):
     return html
 
 def classify_text(text_classification_model, text_classification_data_path, text_to_classify):
+    model_path = text_classification_model.strip()
+    if not model_path:
+        raise ValueError(
+            "Enter your Hugging Face ability model path, e.g. "
+            "your-username/one-piece-ability-classifier. If it does not exist yet, "
+            "the classifier will train from data/abilities.jsonl and push it."
+        )
+
+    text_classification_data_path = text_classification_data_path.strip() or DEFAULT_ABILITIES_PATH
     ability_classifier = AbilityClassifier(
-        model_path=text_classification_model,
+        model_path=model_path,
         data_path=text_classification_data_path,
         huggingface_token=os.getenv('huggingface_token')
     )
@@ -55,8 +77,16 @@ def classify_text(text_classification_model, text_classification_data_path, text
     return output
 
 def chat_with_character_chatbot(message, history):
+    if not DEFAULT_LUFFY_MODEL_PATH:
+        raise ValueError(
+            "Set luffy_model_path in your .env file, e.g. "
+            "your-username/one-piece-luffy-chatbot. If it does not exist yet, "
+            "the chatbot will train from data/one_piece.csv and push it."
+        )
+
     character_chatbot = CharacterChatBot(
-        "YOUR_HF_USERNAME/OnePiece_Luffy_Llama-3.1-8B",
+        DEFAULT_LUFFY_MODEL_PATH,
+        data_path=DEFAULT_TRANSCRIPT_PATH,
         huggingface_token=os.getenv('huggingface_token')
     )
 
@@ -83,10 +113,10 @@ def main():
                     with gr.Column():
                         theme_list = gr.Textbox(
                             label="Themes",
-                            placeholder="freedom, adventure, friendship, dreams, justice, sacrifice, loyalty, betrayal, family, courage"
+                            value=DEFAULT_THEMES
                         )
-                        theme_subtitles_path = gr.Textbox(label="Subtitles or Script Path")
-                        save_path = gr.Textbox(label="Save Path")
+                        theme_subtitles_path = gr.Textbox(label="Subtitles or Script Path", value=DEFAULT_SUBTITLES_PATH)
+                        save_path = gr.Textbox(label="Save Path", value=DEFAULT_THEME_SAVE_PATH)
                         get_themes_button = gr.Button("Get Themes")
                         get_themes_button.click(
                             get_themes,
@@ -102,8 +132,8 @@ def main():
                     with gr.Column():
                         network_html = gr.HTML()
                     with gr.Column():
-                        network_subtitles_path = gr.Textbox(label="Subtitles or Script Path")
-                        ner_path = gr.Textbox(label="NER Save Path")
+                        network_subtitles_path = gr.Textbox(label="Subtitles or Script Path", value=DEFAULT_SUBTITLES_PATH)
+                        ner_path = gr.Textbox(label="NER Save Path", value=DEFAULT_NER_SAVE_PATH)
                         get_network_graph_button = gr.Button("Get Character Network")
                         get_network_graph_button.click(
                             get_character_network,
@@ -119,8 +149,8 @@ def main():
                     with gr.Column():
                         text_classification_output = gr.Textbox(label="Ability Classification Output")
                     with gr.Column():
-                        text_classification_model = gr.Textbox(label="Model Path")
-                        text_classification_data_path = gr.Textbox(label="Data Path")
+                        text_classification_model = gr.Textbox(label="Model Path", value=DEFAULT_ABILITY_MODEL_PATH)
+                        text_classification_data_path = gr.Textbox(label="Data Path", value=DEFAULT_ABILITIES_PATH)
                         text_to_classify = gr.Textbox(label="Ability Description")
                         classify_text_button = gr.Button("Classify Ability")
                         classify_text_button.click(

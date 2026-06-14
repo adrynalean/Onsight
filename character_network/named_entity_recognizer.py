@@ -27,10 +27,17 @@ class NamedEntityRecognizer:
             ners = set()
             for entity in doc.ents:
                 if entity.label_ =="PERSON":
-                    full_name = entity.text
-                    first_name = full_name.split(" ")[0]
-                    first_name = first_name.strip()
-                    ners.add(first_name)
+                    # Use the LAST token, not the first: One Piece names like
+                    # "Monkey D. Luffy", "Monkey D. Garp", "Monkey D. Dragon"
+                    # all share the first token, but their last token (the given
+                    # name) is the distinct, commonly-used handle. Same for
+                    # "Roronoa Zoro" -> "Zoro", "Tony Tony Chopper" -> "Chopper".
+                    tokens = entity.text.split()
+                    if not tokens:
+                        continue
+                    name = tokens[-1].strip(".,!?;:'\"")
+                    if name:
+                        ners.add(name)
             ner_output.append(ners)
 
         return ner_output

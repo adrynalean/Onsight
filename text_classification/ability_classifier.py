@@ -11,6 +11,7 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 import gc
+import random
 from .cleaner import Cleaner
 from .training_utils import get_class_weights, compute_metrics
 from .custom_trainer import CustomTrainer
@@ -24,7 +25,10 @@ class AbilityClassifier():
                  model_name='microsoft/deberta-v3-small',
                  test_size=0.2,
                  num_labels=3,
-                 huggingface_token=None
+                 huggingface_token=None,
+                 description_min_words=25,
+                 description_max_words=110,
+                 force_retrain=False,
                  ):
 
         self.model_path = model_path
@@ -34,6 +38,11 @@ class AbilityClassifier():
         self.model_name = model_name
         self.test_size = test_size
         self.num_labels = num_labels
+        # Length-normalize descriptions so text length can't act as a class
+        # shortcut (Haki rows are short chunks, Devil Fruit / Physical rows are
+        # long articles — without this the model learns "short -> Haki").
+        self.description_min_words = description_min_words
+        self.description_max_words = description_max_words
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         self.huggingface_token = huggingface_token
@@ -42,7 +51,9 @@ class AbilityClassifier():
 
         self.tokenizer = self.load_tokenizer()
 
-        if not huggingface_hub.repo_exists(self.model_path):
+        # force_retrain lets us overwrite an existing repo (e.g. iterating on the
+        # dataset) without deleting it first; inference paths leave it False.
+        if force_retrain or not huggingface_hub.repo_exists(self.model_path):
 
             if data_path is None:
                 raise ValueError("Data path is required to train the model, since the model path does not exist in huggingface hub")
@@ -118,11 +129,28 @@ class AbilityClassifier():
         return None
 
     def preprocess_function(self, tokenizer, examples):
-        return tokenizer(examples['text_cleaned'], truncation=True, max_length=512)
+        # max_length matches the ~110-word description cap so training and
+        # inference see the same length regime (no length shortcut, no
+        # train/inference mismatch on long pasted inputs).
+        return tokenizer(examples['text_cleaned'], truncation=True, max_length=192)
+
+    def _normalize_length(self, descriptions):
+        # Truncate every description to a random word count drawn from the SAME
+        # distribution for all classes, so length no longer correlates with the
+        # label. Seeded for reproducibility.
+        rng = random.Random(42)
+
+        def truncate(desc):
+            words = str(desc).split()
+            k = rng.randint(self.description_min_words, self.description_max_words)
+            return ' '.join(words[:k])
+
+        return descriptions.apply(truncate)
 
     def load_data(self, data_path):
         df = pd.read_json(data_path, lines=True)
         df['ability_type_simplified'] = df['ability_type'].apply(self.simplify_ability)
+        df['ability_description'] = self._normalize_length(df['ability_description'])
         df[self.text_column_name] = df['ability_name'] + '. ' + df['ability_description']
         df[self.label_column_name] = df['ability_type_simplified']
         df = df[[self.text_column_name, self.label_column_name]]

@@ -179,7 +179,10 @@ class CharacterChatBot():
             lr_scheduler_type=lr_scheduler_type,
             report_to="none",
             max_seq_length=512,
-            dataset_text_field="prompt",
+            # "text" not "prompt": trl >=0.10 reserves prompt/completion column
+            # names for its prompt-completion format and would expect a matching
+            # "completion" column (KeyError otherwise). "text" = plain LM field.
+            dataset_text_field="text",
         )
 
         trainer = SFTTrainer(
@@ -261,6 +264,6 @@ class CharacterChatBot():
             prompt += transcript_df.iloc[ind]['text']
             prompts.append(prompt)
 
-        df = pd.DataFrame({"prompt": prompts})
+        df = pd.DataFrame({"text": prompts})
         dataset = Dataset.from_pandas(df)
         return dataset

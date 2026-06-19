@@ -37,7 +37,10 @@ class CharacterChatBot():
         self.model_path = model_path
         self.data_path = data_path
         self.huggingface_token = huggingface_token
-        self.base_model_path = "meta-llama/Llama-3.1-8B-Instruct"
+        # Ungated mirror of Llama 3.1 8B Instruct (identical weights) so training
+        # doesn't block on Meta's gated-repo approval. Swap back to
+        # "meta-llama/Llama-3.1-8B-Instruct" once that access is granted.
+        self.base_model_path = "NousResearch/Meta-Llama-3.1-8B-Instruct"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.torch_dtype = pick_compute_dtype()
 

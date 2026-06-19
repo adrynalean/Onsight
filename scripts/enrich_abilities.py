@@ -1,18 +1,25 @@
-"""Enrich the ability dataset with diverse, balanced Haki and Physical examples.
+"""Turn the crawler's base ability dataset into the final training set.
 
 The One Piece wiki only has ~4 dedicated Haki pages, so a classifier trained on
-them alone learns a weak, low-diversity Haki representation (it gets confused with
-Physical Technique). This script pulls the "Haki" and fighting-style sections from
-major characters' pages (via the MediaWiki API — Fandom 403s HTML scraping but the
-API responds 200), chunks them, caps per character for diversity, and merges them
-with the crawler's base dataset to produce a balanced 3-class file.
+the crawler output alone learns a weak Haki representation and confuses it with
+Physical Technique. This script:
 
-Usage:
-    python scripts/enrich_abilities.py            # reads + overwrites data/abilities.jsonl
-    python scripts/enrich_abilities.py --in X --out Y
+  1. Pulls the "Haki" section from major characters' pages via the MediaWiki API
+     (Fandom 403s HTML scraping, but the API responds 200), chunks + caps per
+     character for diversity, and adds them to the Haki class.
+  2. Scrubs Haki-specific vocabulary (haki / busoshoku / kenbunshoku / haoshoku /
+     conqueror) out of the Devil Fruit and Physical classes — even dedicated
+     fighting-style pages mention Haki, which otherwise poisons "haki" as a signal
+     and makes the model dump Haki inputs into Physical Technique.
+  3. Balances the three classes to equal size (class weights ~1).
 
-The input must already contain the crawler's Devil Fruit / Physical Technique /
-core-Haki rows (run `scrapy runspider crawler/ability_crawler.py` first).
+Pipeline (run in order — each step rewrites data/abilities.jsonl):
+
+    scrapy runspider crawler/ability_crawler.py     # base: DF / Physical / core-Haki
+    python scripts/enrich_abilities.py              # -> balanced, decontaminated set
+
+The base file is expected to contain the crawler's Devil Fruit, Physical Technique
+(dedicated fighting-style pages) and core Haki rows.
 """
 from __future__ import annotations
 
@@ -37,21 +44,13 @@ HAKI_CHARACTERS = [
     "Edward Newgate", "Monkey D. Garp", "Portgas D. Ace", "Sabo", "Eustass Kid",
     "Koby", "Marco",
 ]
-# Characters whose pages carry a fighting-style / physical-abilities section.
-PHYSICAL_CHARACTERS = [
-    "Sanji", "Roronoa Zoro", "Jinbe", "Monkey D. Garp", "Rob Lucci", "Sabo", "Koby",
-    "Franky", "Charlotte Katakuri", "Monkey D. Luffy", "Bartholomew Kuma", "Sentomaru",
-    "Pedro", "Vista", "Hody Jones", "Gecko Moria", "Kin'emon", "Cavendish",
-    "Charlotte Cracker", "King", "Queen",
-]
-PHYSICAL_SECTION_LINES = {
-    "physical abilities", "fighting style", "swordsmanship", "martial arts",
-    "hand-to-hand combat", "physical prowess",
-}
 
 PER_CHARACTER_CAP = 8
 CHUNK_WORDS = 70
 MIN_CHUNK_WORDS = 25
+
+# Haki vocabulary scrubbed from the non-Haki classes so "haki" is Haki-exclusive.
+HAKI_TERMS = re.compile(r"haki|busoshoku|kenbunshoku|haoshoku|conqueror'?s?", re.IGNORECASE)
 
 
 def api(params: dict) -> dict:
@@ -76,59 +75,55 @@ def wikitext_to_text(wt: str) -> str:
     return wt.strip()
 
 
-def section_text(name: str, wanted_lines: set[str]) -> str | None:
-    """Return cleaned text of the wanted section(s), trying the /Abilities and
-    Powers subpage first then the main page."""
+def haki_section_text(name: str) -> str | None:
+    """Cleaned text of a character's Haki section, trying the /Abilities and
+    Powers subpage first, then the main page."""
     for page in (f"{name}/Abilities and Powers", name):
         try:
             sections = api({"action": "parse", "format": "json", "page": page,
                             "prop": "sections"})["parse"]["sections"]
         except Exception:
             continue
-        matches = [s for s in sections if s["line"].strip().lower() in wanted_lines]
+        matches = [s for s in sections if s["line"].strip().lower() == "haki"]
         if not matches:
             continue
-        parts = []
-        for s in matches:
-            wt = api({"action": "parse", "format": "json", "page": page,
-                      "prop": "wikitext", "section": s["index"]})["parse"]["wikitext"]["*"]
-            parts.append(wikitext_to_text(wt))
-        return " ".join(parts)
+        wt = api({"action": "parse", "format": "json", "page": page,
+                  "prop": "wikitext", "section": matches[0]["index"]})["parse"]["wikitext"]["*"]
+        return wikitext_to_text(wt)
     return None
 
 
-def chunk(text: str, size: int = CHUNK_WORDS, min_words: int = MIN_CHUNK_WORDS) -> list[str]:
+def chunk(text: str) -> list[str]:
     words = text.split()
-    pieces = [" ".join(words[i:i + size]) for i in range(0, len(words), size)]
-    return [p for p in pieces if len(p.split()) >= min_words]
+    pieces = [" ".join(words[i:i + CHUNK_WORDS]) for i in range(0, len(words), CHUNK_WORDS)]
+    return [p for p in pieces if len(p.split()) >= MIN_CHUNK_WORDS]
 
 
-def extract(characters: list[str], wanted: set[str], label: str, tag: str,
-            sleep: float = 0.15) -> list[dict]:
-    rows = []
-    for name in characters:
-        text = section_text(name, wanted)
+def character_haki_rows(rng: random.Random, sleep: float = 0.15) -> list[dict]:
+    by_char: dict[str, list[dict]] = collections.defaultdict(list)
+    for name in HAKI_CHARACTERS:
+        text = haki_section_text(name)
         if not text or len(text.split()) < MIN_CHUNK_WORDS:
             continue
         for i, piece in enumerate(chunk(text), start=1):
-            rows.append({
-                "ability_name": f"{name} {tag} - section {i:02d}",
-                "ability_type": label,
+            by_char[name].append({
+                "ability_name": f"{name} Haki - section {i:02d}",
+                "ability_type": "Haki",
                 "ability_description": piece,
             })
         time.sleep(sleep)
+    rows = []
+    for group in by_char.values():
+        rng.shuffle(group)
+        rows.extend(group[:PER_CHARACTER_CAP])
     return rows
 
 
-def cap_per_character(rows: list[dict], cap: int, rng: random.Random) -> list[dict]:
-    by_char: dict[str, list[dict]] = collections.defaultdict(list)
-    for r in rows:
-        char = re.split(r" (?:Haki|Physical) - section", r["ability_name"])[0]
-        by_char[char].append(r)
+def scrub(rows: list[dict]) -> list[dict]:
     out = []
-    for group in by_char.values():
-        rng.shuffle(group)
-        out.extend(group[:cap])
+    for r in rows:
+        desc = re.sub(r"\s{2,}", " ", HAKI_TERMS.sub(" ", r["ability_description"])).strip()
+        out.append({**r, "ability_description": desc})
     return out
 
 
@@ -136,7 +131,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--in", dest="inp", type=Path, default=Path("data/abilities.jsonl"))
     parser.add_argument("--out", type=Path, default=Path("data/abilities.jsonl"))
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
@@ -145,22 +140,14 @@ def main() -> None:
     for r in base:
         by_type[r["ability_type"]].append(r)
 
-    haki_extra = cap_per_character(
-        extract(HAKI_CHARACTERS, {"haki"}, "Haki", "Haki"), PER_CHARACTER_CAP, rng)
-    phys_extra = cap_per_character(
-        extract(PHYSICAL_CHARACTERS, PHYSICAL_SECTION_LINES, "Physical Technique", "Physical"),
-        PER_CHARACTER_CAP, rng)
+    devil_fruit = scrub(by_type["Devil Fruit"])
+    physical = scrub(by_type["Physical Technique"])
+    haki = by_type["Haki"] + character_haki_rows(rng)   # core + diverse character Haki
 
-    combined = (by_type["Devil Fruit"] + by_type["Physical Technique"] + by_type["Haki"]
-                + haki_extra + phys_extra)
-
-    seen, final = set(), []
-    for r in combined:
-        key = (r["ability_type"], r["ability_description"][:200])
-        if key in seen:
-            continue
-        seen.add(key)
-        final.append(r)
+    for group in (devil_fruit, physical, haki):
+        rng.shuffle(group)
+    n = min(len(devil_fruit), len(physical), len(haki))
+    final = devil_fruit[:n] + physical[:n] + haki[:n]
     rng.shuffle(final)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -169,7 +156,7 @@ def main() -> None:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     dist = collections.Counter(r["ability_type"] for r in final)
-    print(f"Wrote {len(final)} rows to {args.out}: {dict(dist)}")
+    print(f"Wrote {len(final)} rows to {args.out}: {dict(dist)} (balanced to {n}/class)")
 
 
 if __name__ == "__main__":

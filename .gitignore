@@ -15,3 +15,6 @@ data/*.jsonl
 
 # Stubs / scratch outputs
 stubs/
+
+# Downloaded model snapshots
+models/

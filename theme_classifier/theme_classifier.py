@@ -18,8 +18,15 @@ class ThemeClassifier():
         self.model_name = "MoritzLaurer/deberta-v3-large-zeroshot-v2"
         self.device = 0 if torch.cuda.is_available() else 'cpu'
         self.theme_list = theme_list
-        self.theme_classifier = self.load_model(self.device)
-    
+        # Lazy: only load the 1.5GB zero-shot model if we actually run inference
+        # (reading a precomputed stub needs no model — keeps the Space light).
+        self.theme_classifier = None
+
+    def _classifier(self):
+        if self.theme_classifier is None:
+            self.theme_classifier = self.load_model(self.device)
+        return self.theme_classifier
+
     def load_model(self,device):
         theme_classifier = pipeline(
             "zero-shot-classification",
@@ -40,7 +47,7 @@ class ThemeClassifier():
             script_batches.append(sent)
         
         # Run Model
-        theme_output = self.theme_classifier(
+        theme_output = self._classifier()(
             script_batches,
             self.theme_list,
             multi_label=True

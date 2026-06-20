@@ -11,19 +11,27 @@ from utils import load_subtitles_dataset
 
 class NamedEntityRecognizer:
     def __init__(self):
-        self.nlp_model = self.load_model()
+        # Lazy: only load the (GPU-heavy) spaCy transformer model when we
+        # actually run NER. Reading a precomputed stub needs no model.
+        self.nlp_model = None
 
     def load_model(self):
         nlp = spacy.load("en_core_web_trf")
         return nlp
 
+    def _model(self):
+        if self.nlp_model is None:
+            self.nlp_model = self.load_model()
+        return self.nlp_model
+
     def get_ners_inference(self,script):
+        nlp = self._model()
         script_sentences = sent_tokenize(script)
 
         ner_output = []
 
         for sentence in script_sentences:
-            doc = self.nlp_model(sentence)
+            doc = nlp(sentence)
             ners = set()
             for entity in doc.ents:
                 if entity.label_ =="PERSON":

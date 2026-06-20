@@ -232,7 +232,9 @@ def main():
         gr.HTML('<div id="op-footer">Built with 🤗 Transformers · SpaCy · PyVis · Gradio'
                 ' &nbsp;|&nbsp; One Piece NLP analysis suite</div>')
 
-    iface.launch()
+    # ssr_mode=False: Gradio 5's experimental SSR layer trips HuggingFace Spaces'
+    # health check and leaves the Space stuck on "Starting".
+    iface.launch(ssr_mode=False)
 
 
 if __name__ == '__main__':

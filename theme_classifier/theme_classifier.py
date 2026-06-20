@@ -15,7 +15,7 @@ nltk.download('punkt_tab')
 
 class ThemeClassifier():
     def __init__(self, theme_list):
-        self.model_name = "MoritzLaurer/deberta-v3-large-zeroshot-v2"
+        self.model_name = "MoritzLaurer/deberta-v3-large-zeroshot-v2.0"
         self.device = 0 if torch.cuda.is_available() else 'cpu'
         self.theme_list = theme_list
         # Lazy: only load the 1.5GB zero-shot model if we actually run inference

@@ -1,3 +1,10 @@
+import os
+# Pin to a single GPU before torch initializes CUDA. On a multi-GPU Kaggle
+# session (T4 x2) the HF Trainer otherwise wraps the model in nn.DataParallel,
+# which breaks 4-bit (bitsandbytes) quantized training ("Caught RuntimeError in
+# replica 0"). QLoRA on an 8B model fits comfortably on one T4.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
+
 import pandas as pd
 import torch
 import re
@@ -20,9 +27,10 @@ def remove_parenthesis(text):
 
 
 def pick_compute_dtype():
-    # bf16 needs Ampere+ (A100/L4/RTX 30xx). Free Kaggle/Colab T4s are Turing
-    # and only support fp16, so fall back rather than crashing/running slow.
-    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+    # bf16 needs Ampere+ (compute capability >= 8.0). torch.cuda.is_bf16_supported()
+    # wrongly returns True on Turing T4s (cc 7.5); the model then crashes with a
+    # "float != BFloat16" dtype mismatch. Gate on the real capability and use fp16.
+    if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
         return torch.bfloat16
     return torch.float16
 

@@ -1,11 +1,11 @@
 import gradio as gr
-from theme_classifier import ThemeClassifier
-from character_network import NamedEntityRecognizer, CharacterNetworkGenerator
-from text_classification import AbilityClassifier
-from character_chatbot import CharacterChatBot
 import os
 from dotenv import load_dotenv
 load_dotenv()
+
+# Heavy module classes are imported lazily inside each handler so the app can
+# start on a CPU-only Space even if a given module's deps aren't installed — a
+# feature only fails (clearly) when its tab is actually used.
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SUBTITLES_PATH = os.path.join(PROJECT_ROOT, "data", "One_Piece_Anime_S1_English")
@@ -17,8 +17,21 @@ DEFAULT_TRANSCRIPT_PATH = os.path.join(PROJECT_ROOT, "data", "one_piece.csv")
 DEFAULT_THEMES = "freedom, adventure, friendship, dreams, justice, sacrifice, loyalty, betrayal, family, courage"
 DEFAULT_ABILITY_MODEL_PATH = os.getenv("ability_model_path", "Fluoron/one-piece-ability-classifier")
 DEFAULT_LUFFY_MODEL_PATH = os.getenv("luffy_model_path", "Fluoron/one-piece-luffy-chatbot")
+# CPU chatbot: 4-bit GGUF served by llama.cpp (no GPU needed).
+DEFAULT_LUFFY_GGUF_REPO = os.getenv("luffy_gguf_repo", "Fluoron/one-piece-luffy-chatbot-GGUF")
+DEFAULT_LUFFY_GGUF_FILE = os.getenv("luffy_gguf_file", "luffy-q4_k_m.gguf")
+
+LUFFY_SYSTEM_PROMPT = (
+    'You are Monkey D. Luffy from the anime "One Piece". '
+    "Respond exactly as Luffy would: carefree, enthusiastic, and direct. "
+    "You dream of becoming King of the Pirates. You care deeply about your crew and friends. "
+    "You are fearless, a little oblivious to complex things, and always hungry. "
+    "Keep responses short and energetic, true to Luffy's speech patterns."
+)
+_LUFFY_LLM = None
 
 def get_themes(theme_list_str, subtitles_path, save_path):
+    from theme_classifier import ThemeClassifier
     theme_list = [theme.strip() for theme in theme_list_str.split(',') if theme.strip()]
     subtitles_path = subtitles_path.strip() or DEFAULT_SUBTITLES_PATH
     save_path = save_path.strip() or None
@@ -44,6 +57,7 @@ def get_themes(theme_list_str, subtitles_path, save_path):
     return output_chart
 
 def get_character_network(subtitles_path, ner_path):
+    from character_network import NamedEntityRecognizer, CharacterNetworkGenerator
     subtitles_path = subtitles_path.strip() or DEFAULT_SUBTITLES_PATH
     ner_path = ner_path.strip() or None
     ner = NamedEntityRecognizer()
@@ -56,6 +70,7 @@ def get_character_network(subtitles_path, ner_path):
     return html
 
 def classify_text(text_classification_model, text_classification_data_path, text_to_classify):
+    from text_classification import AbilityClassifier
     model_path = text_classification_model.strip()
     if not model_path:
         raise ValueError(
@@ -76,28 +91,37 @@ def classify_text(text_classification_model, text_classification_data_path, text
 
     return output
 
-def chat_with_character_chatbot(message, history):
-    if not DEFAULT_LUFFY_MODEL_PATH:
-        raise ValueError(
-            "Set luffy_model_path in your .env file, e.g. "
-            "your-username/one-piece-luffy-chatbot. If it does not exist yet, "
-            "the chatbot will train from data/one_piece.csv and push it."
+def _load_luffy_llm():
+    # Lazy, cached load of the 4-bit GGUF so the Space boots instantly and only
+    # pulls the ~4.5GB model into RAM the first time someone chats.
+    global _LUFFY_LLM
+    if _LUFFY_LLM is None:
+        from llama_cpp import Llama
+        _LUFFY_LLM = Llama.from_pretrained(
+            repo_id=DEFAULT_LUFFY_GGUF_REPO,
+            filename=DEFAULT_LUFFY_GGUF_FILE,
+            n_ctx=2048,
+            n_threads=os.cpu_count(),
+            verbose=False,
         )
+    return _LUFFY_LLM
 
-    character_chatbot = CharacterChatBot(
-        DEFAULT_LUFFY_MODEL_PATH,
-        data_path=DEFAULT_TRANSCRIPT_PATH,
-        huggingface_token=os.getenv('huggingface_token')
+
+def chat_with_character_chatbot(message, history):
+    llm = _load_luffy_llm()
+    messages = [{"role": "system", "content": LUFFY_SYSTEM_PROMPT}]
+    for entry in history:
+        if isinstance(entry, dict):
+            messages.append({"role": entry["role"], "content": entry["content"]})
+        else:
+            messages.append({"role": "user", "content": entry[0]})
+            messages.append({"role": "assistant", "content": entry[1]})
+    messages.append({"role": "user", "content": message})
+
+    result = llm.create_chat_completion(
+        messages=messages, max_tokens=200, temperature=0.7, top_p=0.9,
     )
-
-    output = character_chatbot.chat(message, history)
-    # output is a dict like {"role": "assistant", "content": "..."} when using
-    # transformers chat-style pipelines; fall back gracefully if it's a string.
-    if isinstance(output, dict):
-        output = output.get('content', '').strip()
-    else:
-        output = str(output).strip()
-    return output
+    return result["choices"][0]["message"]["content"].strip()
 
 
 # "Grand Line" theme — ocean blue + straw-hat gold.

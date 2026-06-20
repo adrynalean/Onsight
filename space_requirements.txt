@@ -1,0 +1,28 @@
+# Dependencies for the HuggingFace Space (CPU, inference-only).
+# Trimmed from the dev requirements.txt: no scrapy/bs4 (crawler), no
+# bitsandbytes/peft/trl (GPU training) — the chatbot runs as GGUF on CPU.
+
+# UI
+gradio==5.23.3
+
+# Core inference (ability + theme classifiers run on CPU torch)
+torch==2.6.0
+transformers==4.51.0
+huggingface_hub==0.30.1
+sentencepiece==0.2.0
+protobuf==5.29.3
+scikit-learn==1.6.1
+
+# Character network (NER + graph)
+spacy==3.8.4
+nltk==3.9.1
+networkx==3.4.2
+pyvis==0.3.2
+
+# Luffy chatbot on CPU (GGUF via llama.cpp)
+llama-cpp-python==0.3.2
+
+# Data
+pandas==2.2.3
+numpy==2.2.4
+python-dotenv==1.1.0

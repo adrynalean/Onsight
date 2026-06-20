@@ -110,9 +110,11 @@ class CharacterChatBot():
         model_pipeline = transformers.pipeline(
             "text-generation",
             model=model_path,
+            device_map={"": 0},
             model_kwargs={
                 "torch_dtype": self.torch_dtype,
                 "quantization_config": bnb_config,
+                "low_cpu_mem_usage": True,
             }
         )
         return model_pipeline
@@ -143,6 +145,11 @@ class CharacterChatBot():
         model = AutoModelForCausalLM.from_pretrained(
             base_model_name_or_path,
             quantization_config=bnb_config,
+            # Load 4-bit weights straight onto the GPU shard-by-shard instead of
+            # materializing the full fp16 model in CPU RAM first — otherwise an 8B
+            # model OOM-kills the kernel on a ~13GB-RAM Kaggle T4 instance.
+            device_map={"": 0},
+            low_cpu_mem_usage=True,
             trust_remote_code=True
         )
         model.config.use_cache = False
@@ -211,7 +218,8 @@ class CharacterChatBot():
             return_dict=True,
             quantization_config=bnb_config,
             torch_dtype=self.torch_dtype,
-            device_map=self.device
+            device_map={"": 0},
+            low_cpu_mem_usage=True,
         )
 
         tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)

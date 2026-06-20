@@ -1,4 +1,3 @@
-import spacy
 from nltk.tokenize import sent_tokenize
 import pandas as pd
 from ast import literal_eval
@@ -16,6 +15,7 @@ class NamedEntityRecognizer:
         self.nlp_model = None
 
     def load_model(self):
+        import spacy  # imported lazily so the Space (stub-only) needn't install it
         nlp = spacy.load("en_core_web_trf")
         return nlp
 

@@ -17,14 +17,15 @@ evaluate==0.4.3
 beautifulsoup4==4.13.3
 lxml==5.3.1
 
-# Character network (NER + graph)
-spacy==3.8.4
+# Character network (graph rendered from precomputed NER stub; spaCy not needed
+# on the Space — the model only runs during stub generation on Kaggle)
 nltk==3.9.1
 networkx==3.4.2
 pyvis==0.3.2
 
-# Luffy chatbot on CPU (GGUF via llama.cpp)
-llama-cpp-python==0.3.2
+# Luffy chatbot on CPU (GGUF via llama.cpp) — added in Milestone 3 once the GGUF
+# exists; deferred here to keep the build fast (it compiles from source).
+# llama-cpp-python==0.3.2
 
 # Data
 pandas==2.2.3

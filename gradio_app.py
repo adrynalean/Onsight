@@ -160,20 +160,28 @@ body, gradio-app, .gradio-container, .gradio-container .main, .app {
 }
 .gradio-container { max-width: 1180px !important; margin: 0 auto !important; }
 
-/* every component becomes a parchment-cream card floating on the sea */
+/* every component becomes a deep-sea glass card floating on the ocean */
 .gradio-container .block {
-    background: #fbf8ef !important;
-    border: 1px solid rgba(244,196,48,0.40) !important;
+    background: rgba(9, 32, 58, 0.55) !important;
+    border: 1px solid rgba(244,196,48,0.35) !important;
     border-radius: 14px !important;
-    box-shadow: 0 6px 18px rgba(4,18,34,0.30) !important;
+    box-shadow: 0 6px 18px rgba(4,18,34,0.38) !important;
 }
 /* but the banner / section HTML keep their own backgrounds (no card behind) */
 .gradio-container .block.op-bare {
     background: transparent !important; border: none !important;
     box-shadow: none !important; padding: 0 !important;
 }
+/* force inputs/outputs to a consistent deep-sea style (works in light & dark mode) */
+.gradio-container input[type=text],
+.gradio-container textarea,
+.gradio-container [data-testid="textbox"] textarea {
+    background: #0c2a49 !important; color: #eaf3fb !important;
+    border: 1px solid rgba(244,196,48,0.22) !important;
+}
+.gradio-container ::placeholder { color: #8aa3bd !important; }
 .gradio-container .block label span,
-.gradio-container .block .label-wrap span { color: var(--op-navy) !important; }
+.gradio-container .block .label-wrap span { color: #d8e8f6 !important; }
 
 #op-header {
     background:

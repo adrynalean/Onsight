@@ -149,31 +149,71 @@ OP_THEME = gr.themes.Soft(
 )
 
 OP_CSS = """
-.gradio-container { background: #eef4f8 !important; }
+:root { --op-navy:#0a2540; --op-blue:#14406b; --op-sea:#1b6ca8; --op-gold:#f4c430; }
+
+/* deep-sea background on every wrapper layer (so it actually shows) */
+body, gradio-app, .gradio-container, .gradio-container .main, .app {
+    background:
+      radial-gradient(1200px 540px at 50% -8%, #2a82c4 0%, rgba(20,64,107,0) 58%),
+      linear-gradient(180deg, #103f6b 0%, #0a2a49 52%, #06192e 100%)
+      no-repeat fixed !important;
+}
+.gradio-container { max-width: 1180px !important; margin: 0 auto !important; }
+
+/* every component becomes a parchment-cream card floating on the sea */
+.gradio-container .block {
+    background: #fbf8ef !important;
+    border: 1px solid rgba(244,196,48,0.40) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 18px rgba(4,18,34,0.30) !important;
+}
+/* but the banner / section HTML keep their own backgrounds (no card behind) */
+.gradio-container .block.op-bare {
+    background: transparent !important; border: none !important;
+    box-shadow: none !important; padding: 0 !important;
+}
+.gradio-container .block label span,
+.gradio-container .block .label-wrap span { color: var(--op-navy) !important; }
+
 #op-header {
-    background: linear-gradient(135deg, #0a2540 0%, #14406b 55%, #1b6ca8 100%);
-    border: 1px solid rgba(244,196,48,0.45); border-radius: 16px;
-    padding: 30px 34px; margin-bottom: 6px; box-shadow: 0 10px 28px rgba(10,37,64,0.28);
+    background:
+      radial-gradient(700px 240px at 14% -50%, rgba(244,196,48,0.28), transparent 62%),
+      linear-gradient(135deg, #0a2540 0%, #14406b 55%, #1b6ca8 100%);
+    border: 1px solid rgba(244,196,48,0.6); border-radius: 18px;
+    padding: 34px 36px; margin: 6px 0 2px;
+    box-shadow: 0 16px 36px rgba(4,18,34,0.5);
 }
-#op-header h1 { color:#fff; margin:0; font-size:2.3rem; letter-spacing:3px; font-weight:700; }
-#op-header h1 .accent { color:#f4c430; }
-#op-header p { color:#cfe3f2; margin:8px 0 0; font-size:1.02rem; }
+#op-header h1 { color:#fff; margin:0; font-size:2.45rem; letter-spacing:3px; font-weight:700;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+#op-header h1 .accent { color: var(--op-gold); }
+#op-header p { color:#d8e8f6; margin:10px 0 0; font-size:1.05rem; }
+
 .op-section {
-    background: linear-gradient(90deg,#0a2540,#14406b); border-left: 6px solid #f4c430;
-    border-radius: 10px; padding: 13px 20px; margin: 22px 0 6px; color:#fff;
+    background: linear-gradient(90deg, #0a2540, #14406b 72%, rgba(20,64,107,0.55));
+    border-left: 6px solid var(--op-gold); border-radius: 12px;
+    padding: 14px 22px; margin: 26px 0 8px; color:#fff;
+    box-shadow: 0 6px 16px rgba(4,18,34,0.32);
 }
-.op-section .t { font-size:1.3rem; font-weight:600; }
-.op-section .s { color:#cfe3f2; font-size:0.88rem; }
-button.op-btn { background:#f4c430 !important; color:#0a2540 !important; font-weight:600 !important; border:none !important; }
-button.op-btn:hover { background:#ffd23f !important; }
-#op-footer { text-align:center; color:#5b7a93; font-size:0.85rem; padding:22px 0 8px; }
+.op-section .t { font-size:1.35rem; font-weight:600; }
+.op-section .s { color:#cfe3f2; font-size:0.9rem; }
+
+button.op-btn {
+    background: linear-gradient(180deg, #ffd34d, #f4c430) !important;
+    color: var(--op-navy) !important; font-weight:700 !important;
+    border: 1px solid #d9a916 !important; box-shadow: 0 3px 10px rgba(244,196,48,0.35) !important;
+}
+button.op-btn:hover { background: #ffdc5e !important; }
+
+#op-footer { text-align:center; color:#bcd4ea; font-size:0.88rem; padding: 24px 0 10px; }
+footer { color:#bcd4ea !important; }
 """
 
 
 def _section(icon, title, subtitle):
     return gr.HTML(
         f'<div class="op-section"><span class="t">{icon} {title}</span>'
-        f'<div class="s">{subtitle}</div></div>'
+        f'<div class="s">{subtitle}</div></div>',
+        elem_classes="op-bare",
     )
 
 
@@ -184,7 +224,8 @@ def main():
             '<h1>🏴‍☠️ ONE <span class="accent">PIECE</span> &nbsp;·&nbsp; Series Analysis</h1>'
             '<p>AI / NLP on the Grand Line — story themes, crew bonds, ability types, '
             'and a chat with Luffy</p>'
-            '</div>'
+            '</div>',
+            elem_classes="op-bare",
         )
 
         # Theme Classification

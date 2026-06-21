@@ -128,7 +128,7 @@ def chat_with_character_chatbot(message, history):
     messages.append({"role": "user", "content": message})
 
     result = llm.create_chat_completion(
-        messages=messages, max_tokens=200, temperature=0.7, top_p=0.9,
+        messages=messages, max_tokens=128, temperature=0.7, top_p=0.9,
     )
     return result["choices"][0]["message"]["content"].strip()
 

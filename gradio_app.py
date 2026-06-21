@@ -1,5 +1,11 @@
-import gradio as gr
 import os
+# Force Gradio SSR off BEFORE importing gradio. HF Spaces sets GRADIO_SSR_MODE=1,
+# and SSR (needs Node) hangs a CPU Space on "Starting" with a non-interactive UI.
+# Setting it here overrides HF's value regardless of whether launch(ssr_mode=...)
+# wins, so the queue/backend actually serves.
+os.environ["GRADIO_SSR_MODE"] = "False"
+
+import gradio as gr
 from dotenv import load_dotenv
 load_dotenv()
 

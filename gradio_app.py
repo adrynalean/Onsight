@@ -17,9 +17,12 @@ DEFAULT_TRANSCRIPT_PATH = os.path.join(PROJECT_ROOT, "data", "one_piece.csv")
 DEFAULT_THEMES = "freedom, adventure, friendship, dreams, justice, sacrifice, loyalty, betrayal, family, courage"
 DEFAULT_ABILITY_MODEL_PATH = os.getenv("ability_model_path", "Fluoron/one-piece-ability-classifier")
 DEFAULT_LUFFY_MODEL_PATH = os.getenv("luffy_model_path", "Fluoron/one-piece-luffy-chatbot")
-# CPU chatbot: 4-bit GGUF served by llama.cpp (no GPU needed).
-DEFAULT_LUFFY_GGUF_REPO = os.getenv("luffy_gguf_repo", "Fluoron/one-piece-luffy-chatbot-GGUF")
-DEFAULT_LUFFY_GGUF_FILE = os.getenv("luffy_gguf_file", "luffy-q4_k_m.gguf")
+# CPU chatbot: 4-bit GGUF served by llama.cpp (no GPU needed). Uses the public,
+# ungated Llama 3.1 8B GGUF + the Luffy system prompt below for a free, robust
+# live demo. The fine-tuned LoRA lives at Fluoron/one-piece-luffy-chatbot; point
+# luffy_gguf_repo/file at a converted GGUF of it to serve the fine-tune instead.
+DEFAULT_LUFFY_GGUF_REPO = os.getenv("luffy_gguf_repo", "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
+DEFAULT_LUFFY_GGUF_FILE = os.getenv("luffy_gguf_file", "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
 
 LUFFY_SYSTEM_PROMPT = (
     'You are Monkey D. Luffy from the anime "One Piece". '

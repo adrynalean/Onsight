@@ -43,7 +43,10 @@ class NamedEntityRecognizer:
                     tokens = entity.text.split()
                     if not tokens:
                         continue
-                    name = tokens[-1].strip(".,!?;:'\"")
+                    # Title-case to merge the subtitles' inconsistent casing:
+                    # "[LUFFY]" speaker tags / shouted "SANJI!" vs spoken "Luffy"
+                    # would otherwise become separate nodes in the graph.
+                    name = tokens[-1].strip(".,!?;:'\"").title()
                     if name:
                         ners.add(name)
             ner_output.append(ners)

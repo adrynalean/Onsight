@@ -109,11 +109,15 @@ def _load_luffy_llm():
     global _LUFFY_LLM
     if _LUFFY_LLM is None:
         from llama_cpp import Llama
+        # Use the container's *actual* CPU allowance (cgroup affinity), not the
+        # host core count — os.cpu_count() over-subscribes the 2-vCPU free Space
+        # and llama.cpp thrashes, which is slower than fewer well-fed threads.
+        n_threads = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 2)
         _LUFFY_LLM = Llama.from_pretrained(
             repo_id=DEFAULT_LUFFY_GGUF_REPO,
             filename=DEFAULT_LUFFY_GGUF_FILE,
-            n_ctx=2048,
-            n_threads=os.cpu_count(),
+            n_ctx=1024,
+            n_threads=n_threads,
             verbose=False,
         )
     return _LUFFY_LLM
@@ -131,7 +135,7 @@ def chat_with_character_chatbot(message, history):
     messages.append({"role": "user", "content": message})
 
     result = llm.create_chat_completion(
-        messages=messages, max_tokens=128, temperature=0.7, top_p=0.9,
+        messages=messages, max_tokens=96, temperature=0.7, top_p=0.9,
     )
     return result["choices"][0]["message"]["content"].strip()
 

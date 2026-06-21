@@ -2,6 +2,14 @@
 
 An end-to-end NLP / LLM pipeline that analyses the One Piece anime through five modules, tied together in a single Gradio web app.
 
+## 🏴‍☠️ Live demo
+
+**[huggingface.co/spaces/Fluoron/one-piece-analysis](https://huggingface.co/spaces/Fluoron/one-piece-analysis)** — free, always-on HuggingFace Space (CPU). All four interactive modules run in the browser; the Luffy chatbot serves a 4-bit GGUF via `llama-cpp-python`, so no GPU is required.
+
+Trained models on the Hub: [ability classifier](https://huggingface.co/Fluoron/one-piece-ability-classifier) · [Luffy LoRA](https://huggingface.co/Fluoron/one-piece-luffy-chatbot)
+
+> Deployment notes: themes and the character network are precomputed once and committed as stubs (`data/one_piece_s1_*.csv`) so those tabs are instant; the chatbot serves `Llama-3.2-3B-Instruct` (Q4_K_M) on CPU for speed (the fine-tuned 8B LoRA above is the training deliverable). SSR is disabled (`GRADIO_SSR_MODE=False`) so the Space serves on free CPU hardware.
+
 ## Modules
 
 | Folder | What it does | Model |

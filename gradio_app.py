@@ -27,8 +27,11 @@ DEFAULT_LUFFY_MODEL_PATH = os.getenv("luffy_model_path", "Fluoron/one-piece-luff
 # ungated Llama 3.1 8B GGUF + the Luffy system prompt below for a free, robust
 # live demo. The fine-tuned LoRA lives at Fluoron/one-piece-luffy-chatbot; point
 # luffy_gguf_repo/file at a converted GGUF of it to serve the fine-tune instead.
-DEFAULT_LUFFY_GGUF_REPO = os.getenv("luffy_gguf_repo", "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
-DEFAULT_LUFFY_GGUF_FILE = os.getenv("luffy_gguf_file", "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
+# Llama 3.2 3B (not 8B) for ~3x faster generation on the free CPU Space; still
+# strong for Luffy roleplay via the system prompt. Swap to the 8B GGUF (or a
+# converted GGUF of the fine-tuned LoRA) via luffy_gguf_repo/file if preferred.
+DEFAULT_LUFFY_GGUF_REPO = os.getenv("luffy_gguf_repo", "bartowski/Llama-3.2-3B-Instruct-GGUF")
+DEFAULT_LUFFY_GGUF_FILE = os.getenv("luffy_gguf_file", "Llama-3.2-3B-Instruct-Q4_K_M.gguf")
 
 LUFFY_SYSTEM_PROMPT = (
     'You are Monkey D. Luffy from the anime "One Piece". '

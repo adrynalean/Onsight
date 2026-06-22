@@ -151,9 +151,13 @@ OP_THEME = gr.themes.Soft(
 OP_CSS = """
 :root { --op-navy:#0a2540; --op-blue:#14406b; --op-sea:#1b6ca8; --op-gold:#f4c430; }
 
-/* deep-sea background on every wrapper layer (so it actually shows) */
+/* deep-sea background on every wrapper layer (so it actually shows).
+   Top layer is an inline SVG "old sea-chart" tile (waves + compass rose +
+   a little ship), baked in as a data-URI so it adds ZERO network weight and
+   never makes the page slow. Kept low-opacity gold so text stays readable. */
 body, gradio-app, .gradio-container, .gradio-container .main, .app {
     background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='rgba(244,196,48,0.10)' stroke-width='1.4'%3E%3Cpath d='M0 60 q15 -10 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0'/%3E%3Cpath d='M0 180 q15 -10 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0'/%3E%3C/g%3E%3Cg transform='translate(60 120)' fill='rgba(244,196,48,0.12)' stroke='rgba(244,196,48,0.18)'%3E%3Cpolygon points='0,-22 4,-4 22,0 4,4 0,22 -4,4 -22,0 -4,-4'/%3E%3Ccircle r='26' fill='none' stroke-width='1'/%3E%3C/g%3E%3Cg transform='translate(170 70)' fill='rgba(244,196,48,0.12)'%3E%3Cpath d='M-14 6 h28 l-5 8 h-18 z'/%3E%3Crect x='-1' y='-16' width='2' height='22'/%3E%3Cpath d='M1 -15 q12 4 0 12 z'/%3E%3C/g%3E%3C/svg%3E") repeat fixed,
       radial-gradient(1200px 540px at 50% -8%, #2a82c4 0%, rgba(20,64,107,0) 58%),
       linear-gradient(180deg, #103f6b 0%, #0a2a49 52%, #06192e 100%)
       no-repeat fixed !important;

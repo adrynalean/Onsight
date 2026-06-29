@@ -162,8 +162,12 @@ body, gradio-app, .gradio-container, .gradio-container .main, .app {
       linear-gradient(180deg, #103f6b 0%, #0a2a49 52%, #06192e 100%)
       no-repeat fixed !important;
 }
-.gradio-container { max-width: 1500px !important; margin: 0 auto !important;
+/* width:100% makes the container actually expand to the cap (max-width alone
+   only caps it — Gradio otherwise shrinks it to content width and centers it) */
+.gradio-container { width: 100% !important; max-width: 1500px !important;
+    margin: 0 auto !important;
     padding-left: 22px !important; padding-right: 22px !important; }
+.gradio-container .fillable, .gradio-container .app { width: 100% !important; max-width: 100% !important; }
 
 /* every component becomes a deep-sea glass card floating on the ocean */
 .gradio-container .block {

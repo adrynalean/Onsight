@@ -162,7 +162,8 @@ body, gradio-app, .gradio-container, .gradio-container .main, .app {
       linear-gradient(180deg, #103f6b 0%, #0a2a49 52%, #06192e 100%)
       no-repeat fixed !important;
 }
-.gradio-container { max-width: 1180px !important; margin: 0 auto !important; }
+.gradio-container { max-width: 1500px !important; margin: 0 auto !important;
+    padding-left: 22px !important; padding-right: 22px !important; }
 
 /* every component becomes a deep-sea glass card floating on the ocean */
 .gradio-container .block {
@@ -230,7 +231,8 @@ def _section(icon, title, subtitle):
 
 
 def main():
-    with gr.Blocks(theme=OP_THEME, css=OP_CSS, title="One Piece — Series Analysis") as iface:
+    with gr.Blocks(theme=OP_THEME, css=OP_CSS, fill_width=True,
+                   title="One Piece — Series Analysis") as iface:
         gr.HTML(
             '<div id="op-header">'
             '<h1>🏴‍☠️ ONE <span class="accent">PIECE</span> &nbsp;·&nbsp; Series Analysis</h1>'
@@ -243,10 +245,10 @@ def main():
         # Theme Classification
         _section("🌊", "Themes of the Grand Line",
                  "Zero-shot classification of recurring themes across the subtitles")
-        with gr.Row():
-            with gr.Column():
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=3, min_width=320):
                 plot = gr.BarPlot()
-            with gr.Column():
+            with gr.Column(scale=2, min_width=300):
                 theme_list = gr.Textbox(label="Themes", value=DEFAULT_THEMES)
                 theme_subtitles_path = gr.Textbox(label="Subtitles or script path", value=DEFAULT_SUBTITLES_PATH)
                 save_path = gr.Textbox(label="Save path", value=DEFAULT_THEME_SAVE_PATH)
@@ -260,10 +262,10 @@ def main():
         # Character Network
         _section("🤝", "The crew &amp; their bonds",
                  "Named-entity recognition + a co-occurrence graph of characters")
-        with gr.Row():
-            with gr.Column():
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=3, min_width=320):
                 network_html = gr.HTML()
-            with gr.Column():
+            with gr.Column(scale=2, min_width=300):
                 network_subtitles_path = gr.Textbox(label="Subtitles or script path", value=DEFAULT_SUBTITLES_PATH)
                 ner_path = gr.Textbox(label="NER save path", value=DEFAULT_NER_SAVE_PATH)
                 get_network_graph_button = gr.Button("Get character network", elem_classes="op-btn")
@@ -276,10 +278,10 @@ def main():
         # Ability Classification
         _section("⚔️", "Devil Fruit · Haki · Physical",
                  "Classify any ability description into one of the three combat types")
-        with gr.Row():
-            with gr.Column():
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=2, min_width=300):
                 text_classification_output = gr.Textbox(label="Predicted ability type")
-            with gr.Column():
+            with gr.Column(scale=3, min_width=320):
                 text_classification_model = gr.Textbox(label="Model path", value=DEFAULT_ABILITY_MODEL_PATH)
                 text_classification_data_path = gr.Textbox(label="Data path", value=DEFAULT_ABILITIES_PATH)
                 text_to_classify = gr.Textbox(

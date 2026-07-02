@@ -19,6 +19,13 @@ Trained models on the Hub: [ability classifier](https://huggingface.co/Fluoron/o
 | `text_classification` | Classifies an ability into **Devil Fruit / Haki / Physical Technique** | `microsoft/deberta-v3-small` (fine-tuned) |
 | `theme_classifier` | Zero-shot thematic analysis of each episode | `MoritzLaurer/deberta-v3-large-zeroshot-v2` |
 | `character_chatbot` | LoRA-fine-tuned Luffy chatbot | `meta-llama/Llama-3.1-8B-Instruct` |
+| `semantic_search` | Embeds episode dialogue into overlapping passages and retrieves them by meaning; benchmarked at **95% top-5 passage recall** over 2,036 passages ([results](semantic_search/RESULTS.md)) | `all-MiniLM-L6-v2` + FAISS (hashed-embedding fallback) |
+
+```bash
+python -m semantic_search.ingest                       # index episode dialogue
+python -m semantic_search.search "who is the pirate hunter?"
+python -m semantic_search.evaluate                     # 120-query recall benchmark
+```
 
 ## Setup
 
